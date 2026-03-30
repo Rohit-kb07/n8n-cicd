@@ -1,0 +1,241 @@
+{
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "1caff582-2dcb-4e9f-aa17-e3d7863d8c1a",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -352,
+        -32
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "bucketName": "documents",
+        "returnAll": true,
+        "options": {}
+      },
+      "id": "ada291df-c37c-4a7c-b466-56ec33da829c",
+      "name": "S3 List Objects",
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        -128,
+        -32
+      ],
+      "credentials": {
+        "s3": {
+          "id": "1qH4nxqrItM62tnk",
+          "name": "S3 account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "bucketName": "documents",
+        "fileKey": "={{ $json.Key }}"
+      },
+      "id": "9675b496-0d81-4463-b457-f1a03012885d",
+      "name": "S3 Download File",
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        48,
+        -32
+      ],
+      "credentials": {
+        "s3": {
+          "id": "1qH4nxqrItM62tnk",
+          "name": "S3 account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nfor (const item of items) {\n  const binaryKey = Object.keys(item.binary || {})[0];\n  if (binaryKey) {\n    item.binary[binaryKey].mimeType = 'application/pdf';\n    item.binary[binaryKey].fileExtension = 'pdf';\n  }\n}\nreturn items;"
+      },
+      "id": "f89426f1-2439-4d8e-8a81-e2fa74be5fa8",
+      "name": "Fix MIME Type",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        -32
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "qdrantCollection": {
+          "__rl": true,
+          "value": "n8n",
+          "mode": "list",
+          "cachedResultName": "n8n"
+        },
+        "options": {}
+      },
+      "id": "83a840ab-cc1f-4840-b983-fddbb68329eb",
+      "name": "Qdrant Vector Store",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1,
+      "position": [
+        432,
+        -32
+      ],
+      "credentials": {
+        "qdrantApi": {
+          "id": "gdvoFMCrYwwETdbp",
+          "name": "QdrantApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "dataType": "binary",
+        "loader": "pdfLoader",
+        "options": {}
+      },
+      "id": "90b9eb4b-0496-48b2-87a4-b9b0755710e1",
+      "name": "Default Data Loader",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1,
+      "position": [
+        480,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "chunkOverlap": 200,
+        "options": {}
+      },
+      "id": "fd370519-6200-406e-9b48-627c9ccc312c",
+      "name": "Recursive Character Text Splitter",
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        480,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        16,
+        224
+      ],
+      "id": "93a64175-7b66-4347-b964-64fc5bb60260",
+      "name": "Embeddings OpenAI"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-embedding-2-preview"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        304,
+        240
+      ],
+      "id": "e5409cc7-7234-4ad9-8c87-dbd02b293e68",
+      "name": "Embeddings Google Gemini",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "gJTYoNwT0n4QjzpQ",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "S3 List Objects",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "S3 List Objects": {
+      "main": [
+        [
+          {
+            "node": "S3 Download File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "S3 Download File": {
+      "main": [
+        [
+          {
+            "node": "Fix MIME Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fix MIME Type": {
+      "main": [
+        [
+          {
+            "node": "Qdrant Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Qdrant Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recursive Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Qdrant Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b209d12c53fd53bb7dabb1e66fd124bc8316e1bae09b8710db8fb6c3ee75965a"
+  }
+}
