@@ -10,14 +10,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Checkout code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: 📄 Create .env file
+      - name: Create .env file
         run: |
           echo "${{ secrets.ENV_FILE }}" > .env
 
-      - name: 🚀 Copy project to server
+      - name: Copy files to server
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -26,7 +26,7 @@ jobs:
           source: "."
           target: "/home/ubuntu/n8n-chatbot"
 
-      - name: 🖥️ Deploy via SSH
+      - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_HOST }}
